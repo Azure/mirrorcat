@@ -10,5 +10,5 @@ install:
   - dep ensure
 script:
   - go test ./...
-  - test -z $(go fmt)
-  - test -z $(golint)
+  - test -z "$(go fmt)"
+  - test -z "$(golint)"
