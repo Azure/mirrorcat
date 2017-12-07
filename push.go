@@ -6,7 +6,6 @@ import "strings"
 // Read more at: https://developer.github.com/v3/activity/events/types/#pushevent
 type PushEvent struct {
 	Ref          string   `json:"ref"`
-	Head         string   `json:"head"`
 	Before       string   `json:"before"`
 	Size         int      `json:"size"`
 	DistinctSize int      `json:"distinct_size"`
@@ -22,6 +21,7 @@ type Commit struct {
 	URL     string `json:"url"`
 }
 
+// Author holds the portion of a
 type Author struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
