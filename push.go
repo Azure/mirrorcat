@@ -51,6 +51,8 @@ func NormalizeRef(ref string) string {
 	return ref
 }
 
+// CmdErr allows the Output of a completed CMD to be included with the error itself.
+// This is useful for capturing Failure messages communicated through /dev/stderr
 type CmdErr struct {
 	error
 	Output []byte
