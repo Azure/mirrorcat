@@ -5,5 +5,10 @@ go:
 
 before_install:
   - go get -u github.com/golang/dep/dep
+  - go get -u github.com/golang/lint/golint
 install:
   - dep ensure
+script:
+  - go test ./...
+  - test -z $(go fmt)
+  - test -z $(golint)
