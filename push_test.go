@@ -30,6 +30,8 @@ func TestNormalizeRef(t *testing.T) {
 		want string
 	}{
 		{"remotes/foo/myBranch", "myBranch"},
+		{"remotes/bar/a/b/c", "a/b/c"},
+		{"refs/heads/a/b/c", "a/b/c"},
 	}
 
 	for _, tc := range testCases {
