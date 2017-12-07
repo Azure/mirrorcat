@@ -1,6 +1,17 @@
 package mirrorcat
 
-import "strings"
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"path"
+	"strings"
+
+	"github.com/marstr/randname"
+)
 
 // PushEvent encapsulates all data that will be provided by a GitHub Webhook PushEvent.
 // Read more at: https://developer.github.com/v3/activity/events/types/#pushevent
@@ -38,4 +49,63 @@ func NormalizeRef(ref string) string {
 		ref = strings.TrimPrefix(ref, "heads/")
 	}
 	return ref
+}
+
+type CmdErr struct {
+	error
+	Output []byte
+}
+
+func (ce CmdErr) Error() string {
+	builder := &bytes.Buffer{}
+
+	fmt.Fprintln(builder, "Original Error: ", ce.error.Error())
+	fmt.Fprintln(builder, "Command Output:\n", string(ce.Output))
+
+	return builder.String()
+}
+
+// Push clones the original repository, then pushes the branch specified to another repository.
+func Push(ctx context.Context, original, mirror, ref string) (err error) {
+	const mirrorRemoteHandle = "other"
+
+	cloneLoc := path.Join(os.TempDir(), randname.Generate())
+	defer os.RemoveAll(cloneLoc)
+
+	runCmd := func(cmd *exec.Cmd) (err error) {
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			err = CmdErr{
+				error:  err,
+				Output: output,
+			}
+		}
+		return
+	}
+
+	normalized := NormalizeRef(ref)
+
+	if err = runCmd(exec.CommandContext(ctx, "git", "clone", original, cloneLoc)); err != nil {
+		return
+	}
+
+	checkouter := exec.CommandContext(ctx, "git", "checkout", normalized)
+	checkouter.Dir = cloneLoc
+
+	if err = runCmd(checkouter); err != nil {
+		return
+	}
+
+	remoteAdder := exec.CommandContext(ctx, "git", "remote", "add", mirrorRemoteHandle, mirror)
+	remoteAdder.Dir = cloneLoc
+
+	if err = runCmd(remoteAdder); err != nil {
+		return
+	}
+
+	log.Println("Pushing ", mirrorRemoteHandle, normalized)
+	pusher := exec.CommandContext(ctx, "git", "push", mirrorRemoteHandle, normalized)
+	pusher.Dir = cloneLoc
+	err = runCmd(pusher)
+	return
 }

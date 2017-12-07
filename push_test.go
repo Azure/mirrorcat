@@ -1,10 +1,16 @@
 package mirrorcat_test
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path"
 	"testing"
 
 	"github.com/marstr/mirrorcat"
+	"github.com/marstr/randname"
 )
 
 func ExampleNormalizeRef() {
@@ -33,5 +39,50 @@ func TestNormalizeRef(t *testing.T) {
 				t.Fail()
 			}
 		})
+	}
+}
+
+func TestPush(t *testing.T) {
+	var err error
+	locPrefix := path.Join(os.TempDir(), "test_push")
+	originalLoc, mirrorLoc := path.Join(locPrefix, randname.Generate()), path.Join(locPrefix, randname.Generate())
+
+	t.Log("Original Repo Location: \t", originalLoc)
+	t.Log("Mirror Repo Location:   \t", mirrorLoc)
+
+	runCmd := func(cmd *exec.Cmd) {
+		err = cmd.Run()
+		if err != nil {
+			output, _ := cmd.CombinedOutput()
+			t.Log(output)
+			t.Error(err)
+			t.FailNow()
+		}
+	}
+
+	runCmd(exec.Command("git", "init", originalLoc))
+	defer os.RemoveAll(originalLoc)
+
+	runCmd(exec.Command("git", "init", "--bare", mirrorLoc))
+	defer os.RemoveAll(mirrorLoc)
+
+	err = ioutil.WriteFile(path.Join(originalLoc, "content.txt"), []byte("Hello World!!!"), os.ModePerm)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	adder := exec.Command("git", "add", "--all")
+	adder.Dir = originalLoc
+	runCmd(adder)
+
+	commiter := exec.Command("git", "commit", "-m", `"This is only a test."`)
+	commiter.Dir = originalLoc
+	runCmd(commiter)
+
+	err = mirrorcat.Push(context.Background(), originalLoc, mirrorLoc, "master")
+	if err != nil {
+		t.Error(err)
+		return
 	}
 }

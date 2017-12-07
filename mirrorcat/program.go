@@ -1,17 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"os/exec"
-	"path"
-
-	"github.com/marstr/randname"
 
 	"github.com/marstr/mirrorcat"
 	"github.com/mitchellh/go-homedir"
@@ -29,6 +26,9 @@ func init() {
 		panic(err)
 	}
 
+	viper.SetConfigName(".mirrorcat")
+	viper.SetConfigType("yaml")
+
 	viper.SetEnvPrefix("MIRRORCAT")
 
 	viper.SetDefault("branches", []string{"master"})
@@ -38,7 +38,10 @@ func init() {
 	if home, err := homedir.Dir(); err == nil {
 		viper.AddConfigPath(home)
 	}
+
 	viper.AutomaticEnv()
+	viper.ReadInConfig()
+	log.Println("Used Config File: ", viper.ConfigFileUsed())
 }
 
 func handlePushEvent(output http.ResponseWriter, req *http.Request) {
@@ -74,34 +77,10 @@ func handlePushEvent(output http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	cloneLoc := path.Join(os.TempDir(), randname.Generate())
-	defer os.RemoveAll(cloneLoc)
-
-	log.Println("Clone Location: ", cloneLoc)
-
-	if err = exec.Command("git", "clone", viper.GetString("original"), cloneLoc).Run(); err != nil {
+	err = mirrorcat.Push(context.Background(), viper.GetString("original"), viper.GetString("mirror"), pushed.Ref)
+	if err != nil {
 		output.WriteHeader(http.StatusInternalServerError)
-		fmt.Println(output, "Unable to clone original")
-		log.Println(output, "failed to clone:\n", err.Error())
-		return
-	}
-
-	remoteAdder := exec.Command("git", "remote", "add", mirrorRemoteHandle, viper.GetString("mirror"))
-	remoteAdder.Dir = cloneLoc
-
-	if err = remoteAdder.Run(); err != nil {
-		output.WriteHeader(http.StatusInternalServerError)
-		fmt.Println(output, "Unable to assign mirror remote")
-		log.Println(output, "failed to assign mirror remote:\n", err.Error())
-		return
-	}
-
-	pusher := exec.Command("git", "push", mirrorRemoteHandle, mirrorcat.NormalizeRef(pushed.Ref))
-	pusher.Dir = cloneLoc
-	if err = pusher.Run(); err != nil {
-		output.WriteHeader(http.StatusInternalServerError)
-		fmt.Println(output, "Unable to push")
-		log.Println("Unable to push:\n", err.Error())
+		log.Println("Unable to complete push:\n ", err.Error())
 		return
 	}
 
@@ -115,6 +94,7 @@ func main() {
 	log.Printf("Listening on port %d\n", viper.GetInt("port"))
 	log.Println("Original: ", viper.GetString("original"))
 	log.Println("Mirror: ", viper.GetString("mirror"))
+
 	if http.ListenAndServe(fmt.Sprintf(":%d", viper.GetInt("port")), nil) != nil {
 		return
 	}
