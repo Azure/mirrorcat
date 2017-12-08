@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -21,12 +20,13 @@ type PushEvent struct {
 	Size         int      `json:"size"`
 	DistinctSize int      `json:"distinct_size"`
 	Commits      []Commit `json:"commits"`
+	Head         Commit   `json:"head_commit"`
 }
 
 // Commit is an item detailed in the PushEvent page linked above, which contains metadata
 // about commits that were pushed and that we're being informed of by a webhook.
 type Commit struct {
-	ID      string `json:"sha"`
+	ID      string `json:"id"`
 	Message string `json:"message"`
 	Author  `json:"author"`
 	URL     string `json:"url"`
@@ -105,7 +105,6 @@ func Push(ctx context.Context, original, mirror, ref string) (err error) {
 		return
 	}
 
-	log.Println("Pushing ", mirrorRemoteHandle, normalized)
 	pusher := exec.CommandContext(ctx, "git", "push", mirrorRemoteHandle, normalized)
 	pusher.Dir = cloneLoc
 	err = runCmd(pusher)

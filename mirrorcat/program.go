@@ -77,8 +77,13 @@ func handlePushEvent(output http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = mirrorcat.Push(context.Background(), viper.GetString("original"), viper.GetString("mirror"), pushed.Ref)
-	if err != nil {
+	original := viper.GetString("original")
+	mirror := viper.GetString("mirror")
+
+	err = mirrorcat.Push(context.Background(), original, mirror, pushed.Ref)
+	if err == nil {
+		log.Println("Pushed", pushed.Ref, "at", pushed.Head.ID, "from", original, "to", mirror)
+	} else {
 		output.WriteHeader(http.StatusInternalServerError)
 		log.Println("Unable to complete push:\n ", err.Error())
 		return

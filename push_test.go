@@ -2,7 +2,9 @@ package mirrorcat_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -21,6 +23,42 @@ func ExampleNormalizeRef() {
 	// myBranch
 	// myBranch
 	// myBranch
+}
+
+func TestPushEvent_UnmarshalJSON(t *testing.T) {
+	fileContent, err := os.Open(path.Join(".", "testdata", "examplePush.json"))
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	limited := &io.LimitedReader{
+		R: fileContent,
+		N: 5 * 1024 * 1024,
+	}
+
+	limitedContent, err := ioutil.ReadAll(limited)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	var subject mirrorcat.PushEvent
+	err = json.Unmarshal(limitedContent, &subject)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	if want := "refs/heads/current"; subject.Ref != want {
+		t.Logf("\ngot:  %q\nwant: %q", subject.Ref, want)
+		t.Fail()
+	}
+
+	if want := "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"; subject.Head.ID != want {
+		t.Logf("\ngot:  %q\nwant: %q", subject.Head.ID, want)
+		t.Fail()
+	}
 }
 
 //TestNormalizeRef exists to test edge cases that would just be confusing in a Example block.
