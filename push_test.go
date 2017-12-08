@@ -123,7 +123,17 @@ func TestPush(t *testing.T) {
 	commiter.Dir = originalLoc
 	runCmd(commiter)
 
-	err = mirrorcat.Push(context.Background(), originalLoc, mirrorLoc, "master")
+	original := mirrorcat.RemoteRef{
+		Repository: originalLoc,
+		Ref:        "master",
+	}
+
+	mirror := mirrorcat.RemoteRef{
+		Repository: mirrorLoc,
+		Ref:        "master",
+	}
+
+	err = mirrorcat.Push(context.Background(), original, mirror)
 	if err != nil {
 		t.Error(err)
 		return
