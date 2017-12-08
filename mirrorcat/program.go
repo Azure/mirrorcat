@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os/exec"
 
-	"github.com/marstr/mirrorcat"
+	"github.com/Azure/mirrorcat"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )

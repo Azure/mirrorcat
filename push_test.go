@@ -11,7 +11,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/marstr/mirrorcat"
+	"github.com/Azure/mirrorcat"
 	"github.com/marstr/randname"
 )
 
