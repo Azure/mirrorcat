@@ -20,18 +20,6 @@
   version = "v1.7.3"
 
 [[projects]]
-  name = "github.com/marstr/collection"
-  packages = ["."]
-  revision = "871b1cfa2ab97d3d8f54a034280907896190c346"
-  version = "v0.3.3"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/marstr/randname"
-  packages = ["."]
-  revision = "3ef1f47af99e66171417047e6f6fa334345e95e7"
-
-[[projects]]
   branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
@@ -83,7 +71,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "a0f4589a76f1f83070cb9e5613809e1d07b97c13"
+  revision = "b8f5ef32195cae6470b728e8ca677f0dbed1a004"
 
 [[projects]]
   branch = "master"
@@ -100,6 +88,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "77b84724622048b1b4ae6107de50bcac235156d77a95061fd118772d6afb17a1"
+  inputs-digest = "c358996c3b6f44c7775b090da86e2c33ce9ff666c892ef538629db336061ad18"
   solver-name = "gps-cdcl"
   solver-version = 1

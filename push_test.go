@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/Azure/mirrorcat"
-	"github.com/marstr/randname"
 )
 
 func ExampleNormalizeRef() {
@@ -83,9 +82,13 @@ func TestNormalizeRef(t *testing.T) {
 }
 
 func TestPush(t *testing.T) {
-	var err error
-	locPrefix := path.Join(os.TempDir(), "test_push")
-	originalLoc, mirrorLoc := path.Join(locPrefix, randname.Generate()), path.Join(locPrefix, randname.Generate())
+	locPrefix, err := ioutil.TempDir("", "mirrorcat_test")
+	if err != nil {
+		t.Error()
+		t.FailNow()
+	}
+
+	originalLoc, mirrorLoc := path.Join(locPrefix, "leader"), path.Join(locPrefix, "follower")
 
 	t.Log("Original Repo Location: \t", originalLoc)
 	t.Log("Mirror Repo Location:   \t", mirrorLoc)

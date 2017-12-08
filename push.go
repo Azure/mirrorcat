@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"strings"
-
-	"github.com/marstr/randname"
 )
 
 // PushEvent encapsulates all data that will be provided by a GitHub Webhook PushEvent.
@@ -71,7 +69,10 @@ func (ce CmdErr) Error() string {
 func Push(ctx context.Context, original, mirror, ref string) (err error) {
 	const mirrorRemoteHandle = "other"
 
-	cloneLoc := path.Join(os.TempDir(), randname.Generate())
+	cloneLoc, err := ioutil.TempDir("", "mirrorcat")
+	if err != nil {
+		return
+	}
 	defer os.RemoveAll(cloneLoc)
 
 	runCmd := func(cmd *exec.Cmd) (err error) {
