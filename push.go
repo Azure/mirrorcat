@@ -79,7 +79,7 @@ func (ce CmdErr) Error() string {
 }
 
 // Push clones the original repository, then pushes the branch specified to another repository.
-func Push(ctx context.Context, original, mirror RemoteRef) (err error) {
+func Push(ctx context.Context, original, mirror RemoteRef, depth int) (err error) {
 	const mirrorRemoteHandle = "other"
 
 	cloneLoc, err := ioutil.TempDir("", "mirrorcat")
@@ -99,7 +99,13 @@ func Push(ctx context.Context, original, mirror RemoteRef) (err error) {
 		return
 	}
 
-	if err = runCmd(exec.CommandContext(ctx, "git", "clone", original.Repository, cloneLoc)); err != nil {
+	cloner := exec.CommandContext(ctx, "git", "clone", original.Repository, cloneLoc)
+	if depth > 0 {
+		clonerArgs := append([]string(nil), "--depth", fmt.Sprint(depth))
+		clonerArgs = append(clonerArgs, cloner.Args[2:]...)
+		cloner.Args = append(cloner.Args[:2], clonerArgs...)
+	}
+	if err = runCmd(cloner); err != nil {
 		return
 	}
 

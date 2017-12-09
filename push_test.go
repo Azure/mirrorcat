@@ -133,7 +133,7 @@ func TestPush(t *testing.T) {
 		Ref:        "master",
 	}
 
-	err = mirrorcat.Push(context.Background(), original, mirror)
+	err = mirrorcat.Push(context.Background(), original, mirror, -1)
 	if err != nil {
 		t.Error(err)
 		return

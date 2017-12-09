@@ -14,6 +14,12 @@
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
 
 [[projects]]
+  name = "github.com/inconshreveable/mousetrap"
+  packages = ["."]
+  revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+  version = "v1.0"
+
+[[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "be5ece7dd465ab0765a9682137865547526d1dfb"
@@ -48,6 +54,12 @@
   packages = ["."]
   revision = "acbeb36b902d72a7a4c18e8f3241075e7ab763e4"
   version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/spf13/cobra"
+  packages = ["."]
+  revision = "7b2c5ac9fc04fc5efafb60700713d4fa609b777b"
+  version = "v0.0.1"
 
 [[projects]]
   branch = "master"
@@ -88,6 +100,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c358996c3b6f44c7775b090da86e2c33ce9ff666c892ef538629db336061ad18"
+  inputs-digest = "e02c290d61ce4875ebc4567cffa3cc526ec74d268a768333cc3827e3576a40e4"
   solver-name = "gps-cdcl"
   solver-version = 1
