@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 // PushEvent encapsulates all data that will be provided by a GitHub Webhook PushEvent.
@@ -105,6 +107,7 @@ func Push(ctx context.Context, original, mirror RemoteRef, depth int) (err error
 		clonerArgs = append(clonerArgs, cloner.Args[2:]...)
 		cloner.Args = append(cloner.Args[:2], clonerArgs...)
 	}
+	cloner.Dir, _ = homedir.Dir()
 	if err = runCmd(cloner); err != nil {
 		return
 	}

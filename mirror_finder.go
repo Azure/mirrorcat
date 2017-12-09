@@ -7,8 +7,8 @@ import (
 
 // RemoteRef combines a location with a branch name.
 type RemoteRef struct {
-	Repository string
-	Ref        string
+	Repository string `json:"repo"`
+	Ref        string `json:"ref"`
 }
 
 // MirrorFinder provides an abstraction for communication which branches

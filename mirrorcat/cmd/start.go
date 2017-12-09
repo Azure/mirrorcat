@@ -27,6 +27,7 @@ var startCmd = &cobra.Command{
 	// This application is a tool to generate the needed files
 	// to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		populateStaticMirrors()
 		var host string
 		if reportedHost, err := os.Hostname(); err == nil {
 			host = reportedHost
@@ -59,6 +60,12 @@ const DefaultPort uint = 8080
 // advised to respect it.
 const DefaultCloneDepth = -1
 
+type WrittenTuple struct {
+	Original mirrorcat.RemoteRef `json:"original"`
+	Mirror   mirrorcat.RemoteRef `json:"mirror"`
+	CommitID string              `json:"commitID"`
+}
+
 func init() {
 	RootCmd.AddCommand(startCmd)
 
@@ -81,7 +88,7 @@ func init() {
 	viper.SetDefault("clone-depth", DefaultCloneDepth)
 }
 
-func handleGitHubPushEvent(output http.ResponseWriter, req *http.Request) {
+func handleGitHubPushEvent(resp http.ResponseWriter, req *http.Request) {
 	// MaxPayloadSize is the largest payload that GitHub would transmit. It is defined by GitHub
 	// and was written here on 12/6/2017 after reading this page: https://developer.github.com/webhooks/#payloads
 	const MaxPayloadSize = 5 * 1024 * 1024 // 1024 * 1024 = 1 MB
@@ -104,15 +111,15 @@ func handleGitHubPushEvent(output http.ResponseWriter, req *http.Request) {
 
 	payload, err := ioutil.ReadAll(payloadReader)
 	if err != nil {
-		fmt.Fprintln(output, "Unable to read the request.")
+		fmt.Fprintln(resp, "Unable to read the request.")
 		return
 	}
 
 	err = json.Unmarshal(payload, &pushed)
 	if err != nil {
 		log.Println("Bad Request:\n", err.Error())
-		output.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintln(output, "Body of request didn't conform to expected pattern of GitHub v3 PushEvent. See https://developer.github.com/v3/activity/events/types/#pushevent for expected format.")
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintln(resp, "Body of request didn't conform to expected pattern of GitHub v3 PushEvent. See https://developer.github.com/v3/activity/events/types/#pushevent for expected format.")
 		return
 	}
 
@@ -124,7 +131,7 @@ func handleGitHubPushEvent(output http.ResponseWriter, req *http.Request) {
 
 	go staticMirrors.FindMirrors(ctx, original, mirrors)
 
-	any := false
+	bodyWriter := json.NewEncoder(resp)
 loop:
 	for {
 		select {
@@ -132,28 +139,25 @@ loop:
 			if !ok {
 				break loop
 			}
-			any = true
 
 			err = mirrorcat.Push(ctx, original, entry, viper.GetInt("clone-depth"))
 			if err == nil {
+				bodyWriter.Encode(WrittenTuple{
+					Original: original,
+					Mirror:   entry,
+					CommitID: pushed.Head.ID,
+				})
 				log.Println("Pushed", pushed.Ref, "at", pushed.Head.ID, "from ", original, " to ", entry)
 			} else {
-				output.WriteHeader(http.StatusInternalServerError)
+				resp.WriteHeader(http.StatusInternalServerError)
 				log.Println("Unable to complete push:\n ", err.Error())
 			}
 		case <-ctx.Done():
-			output.WriteHeader(http.StatusRequestTimeout)
+			resp.WriteHeader(http.StatusRequestTimeout)
 			log.Println(ctx.Err())
 			return
 		}
 	}
-
-	if any {
-		output.WriteHeader(http.StatusAccepted)
-	} else {
-		output.WriteHeader(http.StatusOK)
-	}
-
 	log.Println("Request Completed.")
 }
 
