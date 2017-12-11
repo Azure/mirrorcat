@@ -14,4 +14,5 @@ FROM alpine
 RUN apk add --update git
 WORKDIR /root/
 COPY --from=builder /go/src/github.com/Azure/mirrorcat/mirrorcat/mirrorcat .
+EXPOSE 8080
 ENTRYPOINT [ "./mirrorcat", "start" ]
