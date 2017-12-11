@@ -3,12 +3,14 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/Azure/mirrorcat"
@@ -163,28 +165,64 @@ loop:
 
 var staticMirrors = mirrorcat.NewDefaultMirrorFinder()
 
-func populateStaticMirrors() {
-	log.Println("Removing all Static Mirrors")
-	staticMirrors.ClearAll()
+var populateStaticMirrors = func() func() error {
+	var populating sync.Mutex
 
-	for origRepo, refs := range viper.Get("mirrors").(map[string]interface{}) {
-		for origRef, mirrors := range refs.(map[string]interface{}) {
-			original := mirrorcat.RemoteRef{
-				Repository: origRepo,
-				Ref:        origRef,
+	return func() error {
+		populating.Lock()
+		defer populating.Unlock()
+
+		if !viper.InConfig("mirrors") {
+			return errors.New("no `mirrors` property found")
+		}
+
+		originalRepos, ok := viper.Get("mirrors").(map[string]interface{})
+		if !ok {
+			return errors.New("`mirrors` was in an unexpected format")
+		}
+
+		log.Println("Removing all Static Mirrors")
+		staticMirrors.ClearAll()
+
+		for origRepo, refs := range originalRepos {
+			originalRefs, ok := refs.(map[string]interface{})
+			if !ok {
+				log.Printf("skipping because key %q was in an unexpected format.", origRepo)
+				continue
 			}
 
-			for remote, branches := range mirrors.(map[string]interface{}) {
-				for _, remoteRef := range branches.([]interface{}) {
-					mirror := mirrorcat.RemoteRef{
-						Repository: remote,
-						Ref:        remoteRef.(string),
+			for origRef, mirrors := range originalRefs {
+				original := mirrorcat.RemoteRef{
+					Repository: origRepo,
+					Ref:        origRef,
+				}
+
+				remoteRepos, ok := mirrors.(map[string]interface{})
+				if !ok {
+					log.Printf("skipping because key %q was in an unexpected format.", origRef)
+					continue
+				}
+
+				for remote, branches := range remoteRepos {
+
+					remoteRefs, ok := branches.([]interface{})
+					if !ok {
+						log.Printf("skipping because key %q was in an unexpected format.", remote)
+						continue
 					}
 
-					staticMirrors.AddMirrors(original, mirror)
-					log.Println("Adding Static Mirror:\n\t", original, "\n\t", mirror)
+					for _, remoteRef := range remoteRefs {
+						mirror := mirrorcat.RemoteRef{
+							Repository: remote,
+							Ref:        remoteRef.(string),
+						}
+
+						staticMirrors.AddMirrors(original, mirror)
+						log.Println("Adding Static Mirror:\n\t", original, "\n\t", mirror)
+					}
 				}
 			}
 		}
+		return nil
 	}
-}
+}()
