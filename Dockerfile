@@ -1,13 +1,17 @@
-FROM golang:1.9-alpine
+FROM golang:1.9-alpine as builder
 
-EXPOSE 8080
-WORKDIR $GOPATH/src/github.com/Azure/mirrorcat
+WORKDIR /go/src/github.com/Azure/mirrorcat
 
 RUN apk add --update git
-
-ADD . $GOPATH/src/github.com/Azure/mirrorcat
 RUN go get -u github.com/golang/dep/cmd/dep
-RUN dep ensure
-RUN go install ./mirrorcat/
 
-ENTRYPOINT ["mirrorcat", "start"]
+ADD . .
+RUN dep ensure && \
+    cd mirrorcat && \
+    go build -ldflags "-X github.com/Azure/mirrorcat/mirrorcat/cmd.commit=$(git rev-parse HEAD)"
+
+FROM alpine
+RUN apk add --update git
+WORKDIR /root/
+COPY --from=builder /go/src/github.com/Azure/mirrorcat/mirrorcat/mirrorcat .
+ENTRYPOINT [ "./mirrorcat", "start" ]
