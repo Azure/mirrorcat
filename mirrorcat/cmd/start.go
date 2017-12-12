@@ -37,6 +37,8 @@ var startCmd = &cobra.Command{
 			host = "Unknown Host"
 		}
 
+		log.Printf("Starting MirrorCat\n\tBuilt using commit %q", commit)
+
 		log.SetPrefix(fmt.Sprintf("[MirrorCat on %s]", host))
 
 		http.HandleFunc("/push/github", handleGitHubPushEvent)

@@ -54,6 +54,8 @@ func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
+	} else if cfgFile = os.Getenv("MIRRORCAT_CONFIG"); cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
 		home, err := homedir.Dir()

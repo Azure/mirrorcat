@@ -34,15 +34,16 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Prints information about the instance of MirrorCat that is running.",
 	Run: func(cmd *cobra.Command, args []string) {
-		if commit == "" {
-			commit = "Unknown"
-		}
 		fmt.Println("Built from commit:", commit)
 		fmt.Println(runtime.Version(), runtime.GOOS)
 	},
 }
 
 func init() {
+	if commit == "" {
+		commit = "Unknown"
+	}
+
 	RootCmd.AddCommand(versionCmd)
 
 	// Here you will define your flags and configuration settings.
