@@ -1,0 +1,46 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: git-branch-mirroring
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: git-branch-mirroring
+    spec:
+      containers:
+        - name: git-branch-mirroring
+          image: marstr/mirrorcat
+          ports:
+          - containerPort: 8080
+            name: mirrorcat
+          volumeMounts:
+          - name: mirrorcat-config
+            mountPath: /etc/config
+      volumes:
+        - name: config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: git-branch-mirroring
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
+  selector:
+    app: git-branch-mirroring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mirrorcat-config
+  namespace: default
+data:
+  all:
+    mirrors:
+      github.com/Azure/mirrorcat:
+        master:
+          github.com/marstr/mirrorcat:
+          - master
