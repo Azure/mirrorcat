@@ -41,7 +41,7 @@ func ExampleMergeFinder_FindMirrors() {
 	// <nil>
 }
 
-func TestMergeFinder_RespectsCancel(t *testing.T) {
+func TestMergeFinder_FindMirrors_RespectsCancel(t *testing.T) {
 	const mainRepo = "github.com/Azure/mirrorcat"
 	const secondaryRepo = "github.com/marstr/mirrorcat"
 
@@ -65,15 +65,16 @@ func TestMergeFinder_RespectsCancel(t *testing.T) {
 
 	go func() {
 		errs <- subject.FindMirrors(inside, orig, results)
+		t.Log("Finished FindMirrors routine")
 	}()
 
 	cancelInside()
 
 	select {
 	case err := <-errs:
-		t.Log("Error received: ", err)
+		t.Log("error received: ", err)
 		if err == nil || !strings.Contains(err.Error(), "cancel") {
-			t.Logf("expected error to be a cancellation message")
+			t.Log("expected error to be a cancellation message")
 			t.Fail()
 		}
 	case <-outside.Done():

@@ -19,11 +19,23 @@ func (haystack MergeFinder) FindMirrors(ctx context.Context, needle RemoteRef, r
 
 		// Kick-off a goroutine to fetch the child's matching mirrors.
 		go func() {
-			errs <- finder.FindMirrors(ctx, needle, intermediate)
+			select {
+			case errs <- finder.FindMirrors(ctx, needle, intermediate):
+				// Intentionally Left Blank
+			case <-ctx.Done():
+				// This case prevents leaking this goroutine in the case that the underlying type
+				// of `finder` does not respect cancellation tokens appropriately.
+				errs <- ctx.Err()
+			}
 		}()
 
 		for mirror := range intermediate {
-			results <- mirror
+			select {
+			case results <- mirror:
+				// Intentionally Left Blank
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 
 		err = <-errs

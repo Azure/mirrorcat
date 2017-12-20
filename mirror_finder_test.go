@@ -3,6 +3,7 @@ package mirrorcat_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,7 +32,9 @@ func ExampleDefaultMirrorFinder() {
 
 	results := make(chan mirrorcat.RemoteRef)
 
-	ctx, _ := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
 	go subject.FindMirrors(ctx, original, results)
 
 loop:
@@ -70,30 +73,30 @@ func TestDefaultMirrorFinder_FindMirrors_RespectsCancellation(t *testing.T) {
 		},
 	}
 
+	outer, cancelOuter := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancelOuter()
+
 	subject := mirrorcat.NewDefaultMirrorFinder()
 	subject.AddMirrors(original, mirrors...)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	inner, cancelInner := context.WithCancel(outer)
 
 	results := make(chan mirrorcat.RemoteRef)
-	go subject.FindMirrors(ctx, original, results)
+	errs := make(chan error, 1)
+	go func() {
+		errs <- subject.FindMirrors(inner, original, results)
+	}()
 
-	cancel()
-
-	// There's a race-condition imposed here, because FindMirrors will race the cancel()
-	// function to see which gets to the read first. By waiting for 20 milliseconds, we can
-	// pretty well ensure that cancel() wins the race. (cancel needs to complete before
-	// the read/write handshake happens on results between this function and FindMirrors)
-	<-time.After(20 * time.Millisecond)
+	cancelInner()
 
 	select {
-	case _, ok := <-results:
-		if ok {
-			t.Logf("Able to read from results, and the channel was not closed.")
+	case err := <-errs:
+		t.Log("error received: ", err)
+		if err == nil || !strings.Contains(err.Error(), "cancel") {
+			t.Log("expected error to be a cancellation message")
 			t.Fail()
 		}
-	default:
-		t.Logf("Unable to read from results, it was not closed.")
-		t.Fail()
+	case <-outer.Done():
+		t.Error("timed out")
 	}
 }
