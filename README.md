@@ -1,4 +1,4 @@
-![Gophers Building](https://github.com/ashleymcnamara/gophers/blob/53a51e151e368eb57ef5958588365f6e3a6cd6e2/GoBuild.png)
+![Gophers Moving](https://github.com/ashleymcnamara/gophers/blob/53a51e151e368eb57ef5958588365f6e3a6cd6e2/MovingGopher.png)
 
 # MirrorCat
 [![Build Status](https://travis-ci.org/Azure/mirrorcat.svg?branch=master)](https://travis-ci.org/Azure/mirrorcat)
