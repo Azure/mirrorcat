@@ -15,11 +15,6 @@ spec:
           ports:
           - containerPort: 8080
             name: mirrorcat
-          volumeMounts:
-          - name: mirrorcat-config
-            mountPath: /etc/config
-      volumes:
-        - name: config
 ---
 apiVersion: v1
 kind: Service
@@ -31,16 +26,3 @@ spec:
   - port: 8080
   selector:
     app: git-branch-mirroring
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: mirrorcat-config
-  namespace: default
-data:
-  all:
-    mirrors:
-      github.com/Azure/mirrorcat:
-        master:
-          github.com/marstr/mirrorcat:
-          - master
