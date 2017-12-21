@@ -23,6 +23,8 @@ import (
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Starts the MirrorCat server on localhost",
+	Args:  cobra.NoArgs,
+
 	// 	Long: `A longer description that spans multiple lines and likely contains examples
 	// and usage of using your command. For example:
 

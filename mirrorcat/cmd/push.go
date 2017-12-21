@@ -35,16 +35,11 @@ import (
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
-	Use:   "push",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "push {repository} {branch}",
+	Short: "Creates a fake PushEvent and sends it to MirrorCat to induce action.",
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		host := fmt.Sprintf("http://%s:%d/push/github", viper.GetString("hostname"), viper.GetInt("port"))
+		host := fmt.Sprintf("http://%s/push/github", viper.GetString("hostname"))
 
 		fauxEvent := mirrorcat.PushEvent{
 			Ref: args[1],
@@ -91,8 +86,4 @@ func init() {
 	pushCmd.Flags().StringP("hostname", "n", "", "The DNS addressable location of the instance of MirrorCat that should be targeted.")
 	viper.BindPFlag("hostname", pushCmd.Flags().Lookup("hostname"))
 	viper.SetDefault("hostname", "localhost")
-
-	pushCmd.Flags().UintP("port", "p", 0, "The port of the instance of MirrorCat on its host.")
-	viper.BindPFlag("port", pushCmd.Flags().Lookup("port"))
-	viper.SetDefault("port", DefaultPort)
 }

@@ -35,6 +35,7 @@ var commit string
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Prints information about the instance of MirrorCat that is running.",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Built from commit:", commit)
 		fmt.Println(runtime.Version(), runtime.GOOS)
