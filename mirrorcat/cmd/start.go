@@ -47,13 +47,23 @@ var startCmd = &cobra.Command{
 		port := viper.GetInt("port")
 		log.Printf("Listening on port %d\n", port)
 
-		if redisHost := viper.GetString("redis-host"); redisHost != "" {
-			client := redis.NewClient(&redis.Options{
-				Addr: fmt.Sprintf("%s:%d", redisHost, viper.GetInt("redis-port")),
-			})
+		if options, err := redis.ParseURL(viper.GetString("redis-connection")); err != nil {
+			log.Println("Unable to connect to Redis Because: ", err)
+		} else {
+			client := redis.NewClient(options)
 
-			log.Print("Connecting to Redis at", redisHost)
-			allMirrors = append(allMirrors, mirrorcat.RedisFinder(*client))
+			go func() {
+				log.Print("Connecting to Redis at ", options.Addr)
+
+				allMirrors = append(allMirrors, mirrorcat.RedisFinder(*client))
+
+				_, err := client.Keys("*").Result()
+				if err != nil {
+					log.Print("Unable to connect to Redis because: ", err)
+				} else {
+					log.Print("Successfully connected to Redis.")
+				}
+			}()
 		}
 
 		if http.ListenAndServe(fmt.Sprintf(":%d", port), nil) != nil {
@@ -98,15 +108,14 @@ func init() {
 	startCmd.Flags().UintP("clone-depth", "c", 0, "The number of commits to checkout while cloning the original repository. (The default behavior is to clone all of the commits in the original repository.)")
 	viper.BindPFlag("clone-depth", startCmd.Flags().Lookup("clone-depth"))
 
-	startCmd.Flags().UintP("redis-port", "q", 0, "The port to contact Redis with, if its relevant.")
+	startCmd.Flags().UintP("redis-port", "q", 0, "The port to contact Redis with, if it's relevant.")
 	viper.BindPFlag("redis-port", startCmd.Flags().Lookup("redis-port"))
 
-	startCmd.Flags().StringP("redis-host", "r", "", "The host to contact Redis with, if its relevant.")
-	viper.BindPFlag("redis-host", startCmd.Flags().Lookup("redis-host"))
+	startCmd.Flags().StringP("redis-connection", "r", "", "The host to contact Redis with, if it's relevant.")
+	viper.BindPFlag("redis-connection", startCmd.Flags().Lookup("redis-connection"))
 
 	viper.SetDefault("port", DefaultPort)
 	viper.SetDefault("clone-depth", DefaultCloneDepth)
-	viper.SetDefault("redis-port", 6380)
 }
 
 func handleGitHubPushEvent(resp http.ResponseWriter, req *http.Request) {

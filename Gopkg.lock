@@ -8,6 +8,12 @@
   version = "v1.4.2"
 
 [[projects]]
+  name = "github.com/go-redis/redis"
+  packages = [".","internal","internal/consistenthash","internal/hashtag","internal/pool","internal/proto"]
+  revision = "9c885d5ba8a22f260badcffde1649915fbeebfc0"
+  version = "v6.7.5"
+
+[[projects]]
   branch = "master"
   name = "github.com/hashicorp/hcl"
   packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
@@ -100,6 +106,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e02c290d61ce4875ebc4567cffa3cc526ec74d268a768333cc3827e3576a40e4"
+  inputs-digest = "af5b5496f0dbacdaf738399cca08959f8768f1e50d072b0dcbd6aca7b8f1130a"
   solver-name = "gps-cdcl"
   solver-version = 1
