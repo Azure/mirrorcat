@@ -11,6 +11,9 @@ import (
 )
 
 func ExampleMergeFinder_FindMirrors() {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	const mainRepo = "github.com/Azure/mirrorcat"
 	const secondaryRepo = "github.com/marstr/mirrorcat"
 
@@ -23,17 +26,29 @@ func ExampleMergeFinder_FindMirrors() {
 
 	subject := mirrorcat.MergeFinder([]mirrorcat.MirrorFinder{child1, child2})
 
-	results := make(chan mirrorcat.RemoteRef)
+	results, errs := make(chan mirrorcat.RemoteRef), make(chan error, 1)
 
-	var err error
 	go func() {
-		err = subject.FindMirrors(context.Background(), orig, results)
+		select {
+		case errs <- subject.FindMirrors(ctx, orig, results):
+		case <-ctx.Done():
+			errs <- ctx.Err()
+		}
 	}()
 
-	for result := range results {
-		fmt.Printf("%s:%s\n", result.Repository, result.Ref)
+loop:
+	for {
+		select {
+		case result, ok := <-results:
+			if !ok {
+				break loop
+			}
+			fmt.Printf("%s:%s\n", result.Repository, result.Ref)
+		case <-ctx.Done():
+			return
+		}
 	}
-	fmt.Println(err)
+	fmt.Println(<-errs)
 
 	// Output:
 	// github.com/marstr/mirrorcat:master
