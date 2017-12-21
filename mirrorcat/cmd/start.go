@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Azure/mirrorcat"
+	"github.com/go-redis/redis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,6 +46,25 @@ var startCmd = &cobra.Command{
 
 		port := viper.GetInt("port")
 		log.Printf("Listening on port %d\n", port)
+
+		if options, err := redis.ParseURL(viper.GetString("redis-connection")); err != nil {
+			log.Println("Unable to connect to Redis Because: ", err)
+		} else {
+			client := redis.NewClient(options)
+
+			go func() {
+				log.Print("Connecting to Redis at ", options.Addr)
+
+				allMirrors = append(allMirrors, mirrorcat.RedisFinder(*client))
+
+				_, err := client.Keys("*").Result()
+				if err != nil {
+					log.Print("Unable to connect to Redis because: ", err)
+				} else {
+					log.Print("Successfully connected to Redis.")
+				}
+			}()
+		}
 
 		if http.ListenAndServe(fmt.Sprintf(":%d", port), nil) != nil {
 			return
@@ -87,6 +107,9 @@ func init() {
 
 	startCmd.Flags().UintP("clone-depth", "c", 0, "The number of commits to checkout while cloning the original repository. (The default behavior is to clone all of the commits in the original repository.)")
 	viper.BindPFlag("clone-depth", startCmd.Flags().Lookup("clone-depth"))
+
+	startCmd.Flags().StringP("redis-connection", "r", "", "The host to contact Redis with, if it's relevant.")
+	viper.BindPFlag("redis-connection", startCmd.Flags().Lookup("redis-connection"))
 
 	viper.SetDefault("port", DefaultPort)
 	viper.SetDefault("clone-depth", DefaultCloneDepth)
@@ -133,7 +156,7 @@ func handleGitHubPushEvent(resp http.ResponseWriter, req *http.Request) {
 	}
 	mirrors := make(chan mirrorcat.RemoteRef)
 
-	go staticMirrors.FindMirrors(ctx, original, mirrors)
+	go allMirrors.FindMirrors(ctx, original, mirrors)
 
 	bodyWriter := json.NewEncoder(resp)
 loop:
@@ -165,6 +188,7 @@ loop:
 	log.Println("Request Completed.")
 }
 
+var allMirrors = mirrorcat.MergeFinder{staticMirrors}
 var staticMirrors = mirrorcat.NewDefaultMirrorFinder()
 
 var populateStaticMirrors = func() func() error {

@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/spf13/viper"
+
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +38,16 @@ var versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Built from commit:", commit)
 		fmt.Println(runtime.Version(), runtime.GOOS)
+		if viper.GetBool("license") {
+			fmt.Println()
+			fmt.Println(`This Software was written by Microsoft Corp. and Contributors and is Licensed under the MIT license.
+The text of which can be found here:
+https://github.com/Azure/mirrorcat/blob/master/LICENSE
+
+A portion of this Software was written by the github.com/go-redis/redis Authors and is licensed under the BSD-2 Clause.
+The License for this software can be found here:
+https://github.com/go-redis/redis/blob/master/LICENSE`)
+		}
 	},
 }
 
@@ -55,4 +67,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// versionCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	versionCmd.Flags().BoolP("license", "l", false, "Provide this flag to see license information about this project.")
+	viper.BindPFlag("license", versionCmd.Flags().Lookup("license"))
 }
