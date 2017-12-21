@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Azure/mirrorcat"
+	"github.com/go-redis/redis"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,6 +46,15 @@ var startCmd = &cobra.Command{
 
 		port := viper.GetInt("port")
 		log.Printf("Listening on port %d\n", port)
+
+		if redisHost := viper.GetString("redis-host"); redisHost != "" {
+			client := redis.NewClient(&redis.Options{
+				Addr: fmt.Sprintf("%s:%d", redisHost, viper.GetInt("redis-port")),
+			})
+
+			log.Print("Connecting to Redis at", redisHost)
+			allMirrors = append(allMirrors, mirrorcat.RedisFinder(*client))
+		}
 
 		if http.ListenAndServe(fmt.Sprintf(":%d", port), nil) != nil {
 			return
@@ -88,8 +98,15 @@ func init() {
 	startCmd.Flags().UintP("clone-depth", "c", 0, "The number of commits to checkout while cloning the original repository. (The default behavior is to clone all of the commits in the original repository.)")
 	viper.BindPFlag("clone-depth", startCmd.Flags().Lookup("clone-depth"))
 
+	startCmd.Flags().UintP("redis-port", "q", 0, "The port to contact Redis with, if its relevant.")
+	viper.BindPFlag("redis-port", startCmd.Flags().Lookup("redis-port"))
+
+	startCmd.Flags().StringP("redis-host", "r", "", "The host to contact Redis with, if its relevant.")
+	viper.BindPFlag("redis-host", startCmd.Flags().Lookup("redis-host"))
+
 	viper.SetDefault("port", DefaultPort)
 	viper.SetDefault("clone-depth", DefaultCloneDepth)
+	viper.SetDefault("redis-port", 6380)
 }
 
 func handleGitHubPushEvent(resp http.ResponseWriter, req *http.Request) {
@@ -133,7 +150,7 @@ func handleGitHubPushEvent(resp http.ResponseWriter, req *http.Request) {
 	}
 	mirrors := make(chan mirrorcat.RemoteRef)
 
-	go staticMirrors.FindMirrors(ctx, original, mirrors)
+	go allMirrors.FindMirrors(ctx, original, mirrors)
 
 	bodyWriter := json.NewEncoder(resp)
 loop:
@@ -165,6 +182,7 @@ loop:
 	log.Println("Request Completed.")
 }
 
+var allMirrors = mirrorcat.MergeFinder{staticMirrors}
 var staticMirrors = mirrorcat.NewDefaultMirrorFinder()
 
 var populateStaticMirrors = func() func() error {
