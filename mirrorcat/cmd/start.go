@@ -108,9 +108,6 @@ func init() {
 	startCmd.Flags().UintP("clone-depth", "c", 0, "The number of commits to checkout while cloning the original repository. (The default behavior is to clone all of the commits in the original repository.)")
 	viper.BindPFlag("clone-depth", startCmd.Flags().Lookup("clone-depth"))
 
-	startCmd.Flags().UintP("redis-port", "q", 0, "The port to contact Redis with, if it's relevant.")
-	viper.BindPFlag("redis-port", startCmd.Flags().Lookup("redis-port"))
-
 	startCmd.Flags().StringP("redis-connection", "r", "", "The host to contact Redis with, if it's relevant.")
 	viper.BindPFlag("redis-connection", startCmd.Flags().Lookup("redis-connection"))
 

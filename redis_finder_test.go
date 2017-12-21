@@ -33,6 +33,38 @@ func ExampleParseRedisRemoteRef() {
 	// Ref: master
 }
 
+func TestParseRedisRemoteRef(t *testing.T) {
+	testCases := []struct {
+		string
+		want mirrorcat.RedisRemoteRef
+	}{
+		{":", mirrorcat.RedisRemoteRef{}},
+		{"left:right", mirrorcat.RedisRemoteRef{Ref: "left", Repository: "right"}},
+		{"branch:https://hostname:1234/folk?person=Pete%20Seeger", mirrorcat.RedisRemoteRef{Ref: "branch", Repository: "https://hostname:1234/folk?person=Pete%20Seeger"}},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			unmarshaled, err := mirrorcat.ParseRedisRemoteRef(tc.string)
+
+			if err != nil {
+				t.Log("unexpected err: ", err)
+				t.Fail()
+			}
+
+			if unmarshaled.Repository != tc.want.Repository {
+				t.Logf("got: %q want: %q", unmarshaled.Repository, tc.want.Repository)
+				t.Fail()
+			}
+
+			if unmarshaled.Ref != tc.want.Ref {
+				t.Logf("got: %q want: %q", unmarshaled.Ref, tc.want.Ref)
+				t.Fail()
+			}
+		})
+	}
+}
+
 func TestParseRedisRemoteRef_Invalid(t *testing.T) {
 	testCases := []string{
 		"",
