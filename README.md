@@ -1,9 +1,6 @@
 
 <p align="center"><img src="https://github.com/ashleymcnamara/gophers/blob/53a51e151e368eb57ef5958588365f6e3a6cd6e2/MovingGopher.png" width="360">
 </p>
-<p>
-    <font size="6">This image was created by Ashley McNamara. You can find this image, and many others like it, at https://github.com/ashleymcnamara/gophers</font>
-</p>
 <p align="center">
     <a href="https://travis-ci.org/Azure/mirrorcat"><img src="https://travis-ci.org/Azure/mirrorcat.svg?branch=master"></a>
     <a href="https://godoc.org/github.com/Azure/mirrorcat"><img src="https://godoc.org/github.com/Azure/mirrorcat?status.svg" alt="GoDoc"></a>
@@ -42,3 +39,7 @@ Once you've acquired the source, you can run MirrorCat's tests with the followin
 ``` bash
 go test -race -cover -v github.com/Azure/mirrorcat/...
 ```
+
+## Attribution
+
+This image was created by Ashley McNamara. You can find this image, and many others like it, at https://github.com/ashleymcnamara/gophers
