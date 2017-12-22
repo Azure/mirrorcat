@@ -15,7 +15,7 @@ Tired of manually keeping branches up-to-date with one another across repositori
 
 ### Docker
 
-You can run MirrorCat in a container, however/where ever you want, using the Docker. You can find the most up-to-date images here:
+You can run MirrorCat in a container, however/where ever you want, using Docker images. You can find the most up-to-date images here:
 https://cloud.docker.com/swarm/marstr/repository/docker/marstr/mirrorcat/general
 
 ### Built from Source
@@ -129,9 +129,9 @@ MirrorCat, being a project written in Go, uses the really awesome libraries `git
 ## Contribute
 
 ### Conduct
-If you would like to become an active contributor to this project please follow the instructions provided in Microsoft Azure Projects Contribution Guidelines.
+If you would like to become an active contributor to this project please follow the instructions provided in [Microsoft Azure Projects Contribution Guidelines](https://azure.github.io/guidelines/).
 
-This project has adopted the Microsoft Open Source Code of Conduct. For more information see the Code of Conduct FAQ or contact opencode@microsoft.com with any additional questions or comments.
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact opencode@microsoft.com with any additional questions or comments.
 
 ### Requirements
 
