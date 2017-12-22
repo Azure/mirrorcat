@@ -44,7 +44,7 @@ dep ensure
 go install -ldflags "-X github.com/Azure/mirrorcat/mirrorcat/cmd.commit=$(git rev-parse HEAD)" .\mirrorcat
 ```
 
-## Configuration
+## Configure
 
 You'll need to tell MirrorCat which branches to mirror, and where. There are a couple of ways of doing that. The best part? You don't even need to choose between them. A MirrorCat looks around when it starts up to see what is available to it.
 
@@ -102,7 +102,7 @@ mirrors:
 
 ### Using Redis
 
-Sometimes, you may want to enable some dynamicism into how MirrorCat behaves. For example, you may want to have a website where users can declare a branch they've been working on in a lieutenant repository ready for the big time. [Redis is a great way to enable this](https://redis.io/). Just point MirrorCat at a Redis instance by passing it a Redis connection string.
+Sometimes, you may want to introduce some dynamicism into how MirrorCat behaves. For example, you may want to have a website where users can declare a branch they've been working on in a lieutenant repository ready for the big time. [Redis is a great way to enable this](https://redis.io/). Just point MirrorCat at a Redis instance by passing it a Redis connection string.
 
 The expected schema of the Redis instance is to have [Sets](https://redis.io/commands/sadd) of mappings between branch/repository pairs separated by the rune ':'. 
 
