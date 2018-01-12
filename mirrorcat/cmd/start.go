@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -113,8 +115,24 @@ func init() {
 	startCmd.Flags().StringP("redis-connection", "r", "", "The host to contact Redis with, if it's relevant.")
 	viper.BindPFlag("redis-connection", startCmd.Flags().Lookup("redis-connection"))
 
+	startCmd.Flags().StringP("github-auth-token", "g", "", "The default identity to assume when communicating with GitHub. Mirror configuration overrides this setting.")
+	viper.BindPFlag("github-auth-token", startCmd.Flags().Lookup("github-auth-token"))
+
 	viper.SetDefault("port", DefaultPort)
 	viper.SetDefault("clone-depth", DefaultCloneDepth)
+
+	if viper.IsSet("github-auth-token") {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		identity, err := FetchGitHubIdentity(ctx, viper.GetString("github-auth-token"))
+		if err == nil {
+			log.Print("Setting default GitHub identity: ", identity)
+			viper.Set("github-auth-username", identity)
+		} else {
+			log.Println("Unable to find identity to match access token because:", err)
+		}
+	}
 }
 
 func handleGitHubPushEvent(resp http.ResponseWriter, req *http.Request) {
@@ -168,6 +186,16 @@ loop:
 			if !ok {
 				break loop
 			}
+
+			repoURL, err := url.Parse(entry.Repository)
+			hasUser := repoURL.User.Username() != ""
+			_, hasPassword := repoURL.User.Password()
+
+			if viper.IsSet("github-auth-token") && !hasUser && !hasPassword {
+				repoURL.User = url.UserPassword(viper.GetString("github-auth-username"), viper.GetString("github-auth-token"))
+			}
+
+			entry.Repository = repoURL.String()
 
 			err = mirrorcat.Push(ctx, original, entry, viper.GetInt("clone-depth"))
 			if err == nil {
@@ -254,3 +282,43 @@ var populateStaticMirrors = func() func() error {
 		return nil
 	}
 }()
+
+// FetchGitHubIdentity uses the
+func FetchGitHubIdentity(ctx context.Context, token string) (username string, err error) {
+	req, err := http.NewRequest(http.MethodGet, "https://api.github.com/user", &bytes.Buffer{})
+	if err != nil {
+		return
+	}
+	req = req.WithContext(ctx)
+	req.SetBasicAuth("username", token) // The username here gets disregared in the case a token is passed.
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+
+	const maxBytes = 5 * 1024 * 1024
+
+	rawBody, err := ioutil.ReadAll(&io.LimitedReader{
+		R: resp.Body,
+		N: maxBytes,
+	})
+	if err != nil {
+		return
+	}
+
+	partial := map[string]json.RawMessage{}
+
+	err = json.Unmarshal(rawBody, &partial)
+	if err != nil {
+		return
+	}
+
+	if marshaledName, ok := partial["login"]; ok {
+		err = json.Unmarshal([]byte(marshaledName), &username)
+	} else {
+		err = errors.New(`login field wasn't present in GitHub response`)
+	}
+
+	return
+}
