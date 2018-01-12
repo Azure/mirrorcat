@@ -2,31 +2,20 @@ package cmd_test
 
 import (
 	"context"
-	"os"
 	"testing"
+
+	"github.com/spf13/viper"
 
 	"github.com/Azure/mirrorcat/mirrorcat/cmd"
 )
 
 func TestFetchIdentity(t *testing.T) {
-	// Personal Access Token (pat)
-	var pat string
-
-	tokenEnvs := []string{"MIRRORCAT_GITHUB_AUTH_TOKEN", "GITHUB_AUTH_TOKEN"}
-
-	for _, envVar := range tokenEnvs {
-		if val := os.Getenv(envVar); val != "" {
-			pat = val
-			break
-		}
-	}
-
-	if "" == pat {
+	if !viper.IsSet("github-auth-token") || viper.GetString("github-auth-token") == "" {
 		t.Log("Unable to find environment variable defining Auth Token")
 		t.SkipNow()
 	}
 
-	result, err := cmd.FetchGitHubIdentity(context.Background(), pat)
+	result, err := cmd.FetchGitHubIdentity(context.Background(), viper.GetString("github-auth-token"))
 	if err != nil {
 		t.Error(err)
 	} else if result == "" {

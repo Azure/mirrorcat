@@ -70,6 +70,20 @@ var startCmd = &cobra.Command{
 			}()
 		}
 
+		if viper.IsSet("github-auth-token") && viper.GetString("github-auth-token") != "" {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+			defer cancel()
+
+			identity, err := FetchGitHubIdentity(ctx, viper.GetString("github-auth-token"))
+			if err == nil {
+				log.Print("Setting default GitHub identity: ", identity)
+				viper.Set("github-auth-username", identity)
+			} else {
+				log.Println("identity returned:")
+				log.Println("Unable to find identity to match access token because:", err)
+			}
+		}
+
 		if http.ListenAndServe(fmt.Sprintf(":%d", port), nil) != nil {
 			return
 		}
@@ -121,17 +135,9 @@ func init() {
 	viper.SetDefault("port", DefaultPort)
 	viper.SetDefault("clone-depth", DefaultCloneDepth)
 
-	if viper.IsSet("github-auth-token") {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
-
-		identity, err := FetchGitHubIdentity(ctx, viper.GetString("github-auth-token"))
-		if err == nil {
-			log.Print("Setting default GitHub identity: ", identity)
-			viper.Set("github-auth-username", identity)
-		} else {
-			log.Println("Unable to find identity to match access token because:", err)
-		}
+	if prefixlessAuthToken := os.Getenv("GITHUB_AUTH_TOKEN"); !viper.IsSet("github-auth-token") && prefixlessAuthToken != "" {
+		viper.BindEnv("github-auth-token", "GITHUB_AUTH_TOKEN")
+		log.Print(`Using environment variable "GITHUB_AUTH_TOKEN" because "MIRRORCAT_GITHUB_AUTH_TOKEN" wasn't found.`)
 	}
 }
 
@@ -187,9 +193,12 @@ loop:
 				break loop
 			}
 
+			var hasUser, hasPassword bool
 			repoURL, err := url.Parse(entry.Repository)
-			hasUser := repoURL.User.Username() != ""
-			_, hasPassword := repoURL.User.Password()
+			if err == nil && repoURL.User != nil {
+				hasUser = repoURL.User.Username() != ""
+				_, hasPassword = repoURL.User.Password()
+			}
 
 			if viper.IsSet("github-auth-token") && !hasUser && !hasPassword {
 				repoURL.User = url.UserPassword(viper.GetString("github-auth-username"), viper.GetString("github-auth-token"))
@@ -199,6 +208,9 @@ loop:
 
 			err = mirrorcat.Push(ctx, original, entry, viper.GetInt("clone-depth"))
 			if err == nil {
+				// Strip password information before writing to logs.
+				repoURL.User = nil
+				entry.Repository = repoURL.String()
 				bodyWriter.Encode(WrittenTuple{
 					Original: original,
 					Mirror:   entry,
@@ -290,10 +302,14 @@ func FetchGitHubIdentity(ctx context.Context, token string) (username string, er
 		return
 	}
 	req = req.WithContext(ctx)
-	req.SetBasicAuth("username", token) // The username here gets disregared in the case a token is passed.
+	req.Header.Add("Accept", "application/vnd.github.jean-grey-preview+json")
+	req.SetBasicAuth("username", token) // The string "username" is arbitrary, and will be disregarded by the server when seeking an identity for a token.
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		return
+	} else if expected := 200; resp.StatusCode != expected {
+		err = fmt.Errorf("response status code (%d) wasn't the expected (%d): %v", resp.StatusCode, expected, resp)
 		return
 	}
 
@@ -317,7 +333,7 @@ func FetchGitHubIdentity(ctx context.Context, token string) (username string, er
 	if marshaledName, ok := partial["login"]; ok {
 		err = json.Unmarshal([]byte(marshaledName), &username)
 	} else {
-		err = errors.New(`login field wasn't present in GitHub response`)
+		err = fmt.Errorf("login filed wasn't presnent in GitHub repsonse, status code %d", resp.StatusCode)
 	}
 
 	return
