@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -114,7 +115,7 @@ func init() {
 	viper.SetDefault("clone-depth", DefaultCloneDepth)
 
 	viper.BindEnv("github-auth-token", "MIRRORCAT_GITHUB_AUTH_TOKEN")
-	viper.BindEnv("github-auth-username", "MIRROCAT_GITHUB_AUTH_USERNAME")
+	viper.BindEnv("github-auth-username", "MIRRORCAT_GITHUB_AUTH_USERNAME")
 	viper.BindEnv("redis-connection", "MIRRORCAT_REDIS_CONNECTION")
 
 	// Here you will define your flags and configuration settings.
@@ -202,7 +203,8 @@ loop:
 			}
 
 			if viper.IsSet("github-auth-token") && !hasUser && !hasPassword {
-				repoURL.User = url.UserPassword(viper.GetString("github-auth-username"), viper.GetString("github-auth-token"))
+				token := strings.TrimSpace(viper.GetString("github-auth-token"))
+				repoURL.User = url.UserPassword(viper.GetString("github-auth-username"), token)
 			}
 
 			entry.Repository = repoURL.String()
