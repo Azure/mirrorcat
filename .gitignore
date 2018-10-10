@@ -1,2 +1,6 @@
 # Restored Go build dependencies
 vendor/
+
+# Editor Configuration
+.idea/
+.vscode/

@@ -82,8 +82,8 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// pushCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
-	pushCmd.Flags().StringP("hostname", "n", "", "The DNS addressable location of the instance of MirrorCat that should be targeted.")
-	viper.BindPFlag("hostname", pushCmd.Flags().Lookup("hostname"))
 	viper.SetDefault("hostname", "localhost")
+
+	pushCmd.Flags().StringP("hostname", "n", viper.GetString("hostname"), "The DNS addressable location of the instance of MirrorCat that should be targeted.")
+	viper.BindPFlag("hostname", pushCmd.Flags().Lookup("hostname"))
 }

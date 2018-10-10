@@ -70,10 +70,9 @@ var startCmd = &cobra.Command{
 			}()
 		}
 
-		if viper.IsSet("github-auth-token") && viper.GetString("github-auth-token") != "" {
+		if viper.GetString("github-auth-token") != "" && viper.GetString("github-auth-username") == "" {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			defer cancel()
-
 			identity, err := FetchGitHubIdentity(ctx, viper.GetString("github-auth-token"))
 			if err == nil {
 				log.Print("Setting default GitHub identity: ", identity)
@@ -111,6 +110,13 @@ type WrittenTuple struct {
 func init() {
 	RootCmd.AddCommand(startCmd)
 
+	viper.SetDefault("port", DefaultPort)
+	viper.SetDefault("clone-depth", DefaultCloneDepth)
+
+	viper.BindEnv("github-auth-token", "MIRRORCAT_GITHUB_AUTH_TOKEN")
+	viper.BindEnv("github-auth-username", "MIRROCAT_GITHUB_AUTH_USERNAME")
+	viper.BindEnv("redis-connection", "MIRRORCAT_REDIS_CONNECTION")
+
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
@@ -120,25 +126,20 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// startCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	startCmd.Flags().UintP("port", "p", 0, "The port that should be used to serve the MirrorCat service on.")
+	startCmd.Flags().UintP("port", "p", uint(viper.GetInt("port")), "The port that should be used to serve the MirrorCat service on.")
 	viper.BindPFlag("port", startCmd.Flags().Lookup("port"))
 
-	startCmd.Flags().UintP("clone-depth", "c", 0, "The number of commits to checkout while cloning the original repository. (The default behavior is to clone all of the commits in the original repository.)")
+	startCmd.Flags().UintP("clone-depth", "c", uint(viper.GetInt("clone-depth")), "The number of commits to checkout while cloning the original repository.")
 	viper.BindPFlag("clone-depth", startCmd.Flags().Lookup("clone-depth"))
 
-	startCmd.Flags().StringP("redis-connection", "r", "", "The host to contact Redis with, if it's relevant.")
+	startCmd.Flags().StringP("redis-connection", "r", viper.GetString("redis-connection"), "The host to contact Redis with, if it's relevant.")
 	viper.BindPFlag("redis-connection", startCmd.Flags().Lookup("redis-connection"))
 
-	startCmd.Flags().StringP("github-auth-token", "g", "", "The default identity to assume when communicating with GitHub. Mirror configuration overrides this setting.")
+	startCmd.Flags().StringP("github-auth-token", "g", viper.GetString("github-auth-token"), "The Personal Access Token to use while communicating with GitHub.")
 	viper.BindPFlag("github-auth-token", startCmd.Flags().Lookup("github-auth-token"))
 
-	viper.SetDefault("port", DefaultPort)
-	viper.SetDefault("clone-depth", DefaultCloneDepth)
-
-	if prefixlessAuthToken := os.Getenv("GITHUB_AUTH_TOKEN"); !viper.IsSet("github-auth-token") && prefixlessAuthToken != "" {
-		viper.BindEnv("github-auth-token", "GITHUB_AUTH_TOKEN")
-		log.Print(`Using environment variable "GITHUB_AUTH_TOKEN" because "MIRRORCAT_GITHUB_AUTH_TOKEN" wasn't found.`)
-	}
+	startCmd.Flags().StringP("github-auth-username", "u", viper.GetString("github-auth-username"), "Optional: The identity to use while communication with GitHub.")
+	viper.BindPFlag("github-auth-username", startCmd.Flags().Lookup("github-auth-username"))
 }
 
 func handleGitHubPushEvent(resp http.ResponseWriter, req *http.Request) {
